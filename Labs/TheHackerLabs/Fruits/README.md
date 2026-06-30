@@ -97,44 +97,20 @@ Consultando GTFOBins se identificó una técnica para obtener una shell privileg
 
 ## Knowledge Map
 
-### 🌐 Web Pentesting
+### 🌐 Web-Pentesting
 
-✅ Local File Inclusion (LFI)
-
-👉 Web Pentesting/Local File Inclusion
-
-✅ Gobuster
-
-👉 Notes/Gobuster
-
-✅ Wfuzz
-
-👉 Notes/Wfuzz
-
----
+- Local File Inclusion (LFI)
 
 ### 📚 Notes
 
-✅ Hydra
+#### Tools
+- Gobuster
+- Wfuzz
+- Hydra
 
-👉 Notes/Hydra
+#### Networking
+- SSH
 
-✅ SSH Enumeration
-
-👉 Notes/SSH
-
----
-
-### 🐧 Linux
-
-✅ Sudo
-
-👉 Notes/Linux/Sudo
-
-✅ GTFOBins
-
-👉 Notes/Linux/GTFOBins
-
-✅ find
-
-👉 Notes/Linux/find
+#### Linux
+- Sudo
+- GTFOBins
