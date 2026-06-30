@@ -1,18 +1,16 @@
 # 🐍 Python
 
-La automatización es una de las habilidades más importantes para cualquier pentester.
+Este repositorio recopila todos los scripts desarrollados en Python durante mi formación en ciberseguridad ofensiva.
 
-En este repositorio desarrollaré scripts en Python creados durante mi proceso de aprendizaje, con el objetivo de automatizar tareas repetitivas, mejorar flujos de trabajo y comprender mejor cómo funcionan las herramientas que utilizamos diariamente en auditorías de seguridad.
+El objetivo no es aprender programación de forma aislada, sino utilizar Python para automatizar tareas habituales durante un pentest, mejorar procesos y desarrollar herramientas útiles para auditorías de seguridad.
 
-No busco únicamente aprender Python, sino utilizarlo como una herramienta para resolver problemas reales dentro del pentesting.
+Cada proyecto incluirá documentación, ejemplos de uso y una explicación del problema que intenta resolver.
 
-## Próximos proyectos
+## Contenido
 
-- Escáneres de puertos
 - Automatización de enumeración
-- Procesamiento de resultados de Nmap
-- Scripts para auditorías web
-- Herramientas de apoyo durante laboratorios
-- Utilidades para Active Directory
-
-Todos los proyectos estarán documentados para explicar tanto su funcionamiento como el proceso seguido durante su desarrollo.
+- Procesamiento de resultados
+- Herramientas para reconocimiento
+- Scripts para Active Directory
+- Utilidades para auditorías web
+- Automatización de tareas repetitivas
