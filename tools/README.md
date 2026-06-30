@@ -1,19 +1,16 @@
 # 🛠 Tools
 
-Este repositorio reúne todas las herramientas desarrolladas durante mi aprendizaje en ciberseguridad ofensiva.
+Este repositorio reúne herramientas completas desarrolladas durante mi formación en Offensive Security.
 
-Aquí iré almacenando pequeños proyectos creados para facilitar tareas habituales durante un pentest, automatizar procesos o experimentar con nuevas ideas.
+A diferencia de los repositorios de Python o Bash, aquí se publicarán proyectos terminados que integren diferentes tecnologías para resolver problemas reales durante una auditoría de seguridad.
 
-Más que desarrollar herramientas complejas, el objetivo es comprender cómo funcionan y aprender a construir soluciones propias para problemas reales.
+El objetivo es construir herramientas reutilizables, bien documentadas y orientadas a escenarios reales.
 
-## Encontrarás herramientas relacionadas con
+## Futuras herramientas
 
-- Enumeración
-- Reconocimiento
-- Auditorías web
-- Active Directory
-- Automatización
-- Tratamiento de resultados
-- Utilidades para laboratorios
-
-Cada herramienta contará con su documentación correspondiente, instrucciones de uso y ejemplos prácticos.
+- Recon Toolkit
+- AD Toolkit
+- Web Enumeration Toolkit
+- Pentest Helper
+- Report Generator
+- Wordlist Utilities
