@@ -1,10 +1,10 @@
 # 📄 Reports
 
-Una auditoría de seguridad no termina cuando se obtiene acceso a un sistema. La capacidad para documentar correctamente los hallazgos es una de las habilidades más importantes de un pentester.
+Este repositorio recopila informes profesionales de pentesting elaborados durante laboratorios, proyectos personales y entornos vulnerables.
 
-En este repositorio iré recopilando informes de pentesting elaborados durante laboratorios, máquinas vulnerables y proyectos personales.
+Cada informe sigue una metodología estructurada similar a la utilizada en auditorías profesionales, incluyendo análisis técnico, evaluación del riesgo y recomendaciones de mitigación.
 
-El objetivo es practicar la elaboración de documentación técnica siguiendo un formato profesional, incluyendo tanto el análisis técnico como las recomendaciones de mitigación.
+El objetivo es mejorar continuamente la capacidad de documentar hallazgos de forma clara, técnica y orientada al cliente.
 
 ## Los informes incluirán
 
