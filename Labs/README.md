@@ -1,4 +1,4 @@
-# 📄 Reports
+# 📄 Labs
 
 Este repositorio recopila informes profesionales de pentesting elaborados durante laboratorios, proyectos personales y entornos vulnerables.
 
