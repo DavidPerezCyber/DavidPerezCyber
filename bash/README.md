@@ -1,18 +1,16 @@
 # 💻 Bash
 
-Gran parte del trabajo diario de un pentester se desarrolla en entornos Linux, donde Bash se convierte en una herramienta fundamental.
+Este repositorio contiene scripts desarrollados en Bash para automatizar tareas habituales en entornos Linux durante auditorías de seguridad.
 
-Este repositorio recopilará scripts orientados a automatizar tareas habituales durante las distintas fases de una auditoría de seguridad, desde la enumeración inicial hasta pequeñas utilidades que faciliten el trabajo diario.
+La mayoría de herramientas estarán orientadas a reducir tareas repetitivas y mejorar la eficiencia durante las fases de reconocimiento, enumeración y post-explotación.
 
-Mi objetivo es crear herramientas sencillas, útiles y reutilizables que me permitan trabajar de una forma más eficiente.
+Cada script estará acompañado de documentación y ejemplos prácticos.
 
 ## Contenido
 
-- Scripts de enumeración
-- Automatización de reconocimiento
+- Enumeración
+- Reconocimiento
 - Gestión de archivos
-- Utilidades para laboratorios
+- Automatización
 - Scripts de apoyo para OSCP
-- Automatización de tareas repetitivas
-
-Cada script incluirá una explicación sobre su funcionamiento, los parámetros utilizados y ejemplos de uso.
+- Utilidades Linux
