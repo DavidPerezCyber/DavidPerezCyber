@@ -110,7 +110,9 @@ Consultando GTFOBins se identificó una técnica para obtener una shell privileg
 
 #### Networking
 - SSH
+- HTTP
 
 #### Linux
 - Sudo
 - GTFOBins
+- find
