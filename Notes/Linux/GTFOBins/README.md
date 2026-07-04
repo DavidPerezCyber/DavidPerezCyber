@@ -43,3 +43,4 @@ Comprobar siempre la versión y el contexto antes de aplicar una técnica de GTF
 ## Laboratorios donde lo he utilizado
 
 - Fruits (The Hacker Labs)
+- JaulaCon2025 (The Hacker Labs)
