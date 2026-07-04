@@ -47,3 +47,4 @@ Comprobar siempre GTFOBins cuando un binario pueda ejecutarse mediante sudo.
 ## Laboratorios donde lo he utilizado
 
 - Fruits (The Hacker Labs)
+- JaulaCon2025 (The Hacker Labs)
