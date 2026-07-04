@@ -63,3 +63,4 @@ Intentar obtener usuarios antes de lanzar Hydra.
 
 - Fruits (The Hacker Labs)
 - JaulaCon2025 (The Hacker Labs)
+- Facultad (The Hacker Labs)
