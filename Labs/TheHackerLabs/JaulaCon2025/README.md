@@ -137,7 +137,7 @@ Tools
 - CrackStation
 
 Linux
-
-- Sudo
 - GTFOBins
-- busctl
+
+  Sudo
+  - busctl
