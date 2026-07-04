@@ -52,3 +52,4 @@ Realizar varios escaneos utilizando distintas extensiones.
 
 - Fruits (The Hacker Labs)
 - JaulaCon2025 (The Hacker Labs)
+- Facultad (The Hacker Labs)
