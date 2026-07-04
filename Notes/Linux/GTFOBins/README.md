@@ -4,6 +4,7 @@
 
 GTFOBins es un repositorio que documenta formas legítimas de utilizar binarios de Unix para obtener ejecución de comandos, leer archivos o escalar privilegios cuando esos binarios pueden ejecutarse con permisos elevados.
 Acceso a través de https://gtfobins.org/.
+
 ---
 
 ## ¿Cuándo utilizarlo?
