@@ -31,12 +31,6 @@ hydra -l usuario -P rockyou.txt ssh://IP
 
 ---
 
-## Ejemplos
-
-Obtención de acceso SSH en Fruits.
-
----
-
 ## Errores comunes
 
 Lanzar Hydra sin conocer usuarios válidos.
