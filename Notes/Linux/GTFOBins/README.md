@@ -44,3 +44,4 @@ Comprobar siempre la versión y el contexto antes de aplicar una técnica de GTF
 
 - Fruits (The Hacker Labs)
 - JaulaCon2025 (The Hacker Labs)
+- Facultad (The Hacker Labs)
