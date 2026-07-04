@@ -51,3 +51,4 @@ Realizar varios escaneos utilizando distintas extensiones.
 ## Laboratorios donde lo he utilizado
 
 - Fruits (The Hacker Labs)
+- JaulaCon2025 (The Hacker Labs)
