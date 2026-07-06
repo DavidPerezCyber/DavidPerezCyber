@@ -1,4 +1,4 @@
-# Startup
+# Start Up
 
 ## 🖥️ Sistema
 
@@ -8,7 +8,7 @@ Linux
 
 ## 🎯 Objetivo del laboratorio
 
-Comprometer una máquina Linux aprovechando un servidor **FTP con Anonymous Login**, obtener una **reverse shell** mediante una subida de archivos, recuperar credenciales analizando una captura de red con **Wireshark** y escalar privilegios hasta obtener acceso como **root**.
+Comprometer una máquina Linux aprovechando un servidor **FTP con acceso anónimo**, obtener una **Remote Code Execution (RCE)** mediante la subida de archivos, recuperar credenciales analizando una captura de red y escalar privilegios modificando un script ejecutado automáticamente por **root**.
 
 ---
 
@@ -16,24 +16,26 @@ Comprometer una máquina Linux aprovechando un servidor **FTP con Anonymous Logi
 
 - FTP
 - Anonymous Login
+- Gobuster
 - PHP Reverse Shell
 - Wireshark
-- PCAP Analysis
 - SSH
-- Python
 - Cron Jobs
+- Linux Permissions
 
 ---
 
 ## 🧠 Metodología
 
-La enumeración inicial reveló tres servicios interesantes: **FTP**, **SSH** y **HTTP**. El hecho de que el servidor FTP permitiera autenticación anónima lo convirtió inmediatamente en el principal punto de entrada, ya que ofrecía la posibilidad de escribir archivos directamente en el servidor.
+La enumeración inicial mostró tres servicios interesantes: **FTP**, **SSH** y **HTTP**. El hecho de que el servidor FTP permitiera autenticación anónima convirtió este servicio en el principal punto de partida, ya que podía facilitar tanto información sensible como la posibilidad de subir archivos al servidor.
 
-Aunque inicialmente los archivos presentes en el FTP no aportaban información relevante, la enumeración de la aplicación web mostró un directorio desde el que era posible acceder a los archivos almacenados en dicho servidor. Esto permitió utilizar el FTP como mecanismo para subir una **reverse shell** y ejecutarla desde el navegador.
+Aunque la aplicación web apenas mostraba información útil, la enumeración de directorios reveló una relación directa entre el contenido publicado por la web y los archivos almacenados en el servidor FTP. Esto sugería que cualquier archivo subido al FTP podría ejecutarse posteriormente desde el navegador.
 
-Una vez comprometido el sistema, la enumeración interna permitió localizar un directorio con una captura de tráfico de red (`.pcapng`). En lugar de continuar buscando vulnerabilidades locales, decidí analizar esa evidencia, ya que podía contener credenciales o información sensible.
+Tras obtener acceso inicial mediante una **reverse shell**, la enumeración interna permitió descubrir una captura de tráfico de red. En lugar de seguir buscando vulnerabilidades locales, decidí analizar el archivo con Wireshark, ya que este tipo de evidencias suele contener credenciales o información sensible.
 
-El análisis del tráfico reveló la contraseña de un usuario del sistema, permitiendo pivotar hacia una cuenta con mayores privilegios. La escalada final se basaba en la modificación de un script ejecutado automáticamente por **root**, una técnica muy habitual en laboratorios relacionados con tareas programadas.
+Finalmente, una vez obtenido acceso mediante SSH como un usuario legítimo, la revisión de los scripts ejecutados automáticamente por **root** reveló una configuración insegura que permitía modificar uno de ellos y conseguir una escalada de privilegios.
+
+Este laboratorio combina varias fases muy habituales en auditorías reales: enumeración de servicios, análisis de tráfico, reutilización de credenciales y explotación de tareas programadas.
 
 ---
 
@@ -41,140 +43,160 @@ El análisis del tráfico reveló la contraseña de un usuario del sistema, perm
 
 ### 1. Enumeración inicial
 
-Comencé comprobando la conectividad con la máquina mediante `ping` y confirmé que se trataba de un sistema Linux gracias al TTL obtenido.
-
-Posteriormente realicé un escaneo completo utilizando Nmap.
+Comencé realizando un escaneo completo de puertos utilizando Nmap.
 
 ```bash
-nmap -p- --open -sS -sC -sV --min-rate 5000 -n -Pn 10.10.241.120
+nmap -p- 10.130.155.33
 ```
 
-Se identificaron los siguientes servicios:
+Los servicios detectados fueron:
 
 | Puerto | Servicio |
 |---------|----------|
-| 21 | FTP (Anonymous Login permitido) |
+| 21 | FTP |
 | 22 | SSH |
 | 80 | HTTP |
+
+Posteriormente realicé una enumeración más detallada.
+
+```bash
+nmap -sC -sV -p21,22,80 10.130.155.33
+```
+
+La información obtenida confirmó:
+
+- FTP con **Anonymous Login** habilitado.
+- SSH sobre Ubuntu.
+- Servidor Apache en el puerto 80.
 
 ---
 
 ### 2. Enumeración de servicios
 
-El primer servicio analizado fue el servidor FTP.
+#### FTP
 
-Accedí utilizando el usuario:
+Accedí utilizando autenticación anónima.
 
-```text
-anonymous
+```bash
+ftp anonymous@10.130.155.33
 ```
 
-y descargué los archivos disponibles.
+Dentro encontré dos archivos interesantes:
 
-Aunque inicialmente no contenían información útil, confirmé que tenía permisos para subir nuevos archivos al servidor.
+- `notice.txt`
+- `important.jpg`
 
-Posteriormente revisé la aplicación web y realicé una enumeración de directorios.
+El archivo `notice.txt` hacía referencia al usuario:
 
-Entre los recursos descubiertos apareció:
+```
+Maya
+```
+
+Aunque esta información todavía no permitía acceder al sistema, resultaba útil para futuras fases.
+
+---
+
+#### Aplicación web
+
+Accedí a la página principal.
+
+```
+http://10.130.155.33
+```
+
+La aplicación únicamente mostraba una página en mantenimiento.
+
+Realicé una enumeración de directorios utilizando Gobuster.
+
+```bash
+gobuster dir -u http://10.130.155.33 -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt
+```
+
+La enumeración descubrió:
 
 ```
 /files
 ```
 
-Este directorio correspondía al contenido almacenado en el servidor FTP.
+Dentro apareció:
+
+```
+/files/ftp
+```
+
+La coincidencia entre este directorio y el contenido del servidor FTP indicaba que ambos compartían el mismo almacenamiento.
 
 ---
 
 ### 3. Obtención del acceso inicial
 
-Aprovechando que el contenido del FTP era accesible desde la web, preparé una **reverse shell** en PHP basada en el script de PentestMonkey.
+Aprovechando la relación entre el FTP y el servidor web, preparé una **reverse shell** en PHP.
 
-Posteriormente la subí al servidor mediante FTP.
-
-```bash
-send shell.php
-```
-
-Preparé un listener con Netcat.
-
-```bash
-nc -lvnp 443
-```
-
-Finalmente accedí al archivo desde el navegador.
+Subí el archivo al servidor FTP y posteriormente accedí a él desde el navegador mediante:
 
 ```
-http://10.10.241.120/files/shell.php
+/files/ftp
 ```
 
-La reverse shell se ejecutó correctamente y obtuve acceso al sistema.
+El archivo se ejecutó correctamente y obtuve una shell sobre la máquina víctima.
 
 ---
 
-### 4. Acceso inicial
+### 4. Post-explotación
 
-La shell obtenida pertenecía al usuario:
+Tras obtener acceso comencé la enumeración del sistema.
 
-```
-www-data
-```
-
-Para trabajar con mayor comodidad realicé el tratamiento habitual de la TTY.
-
-```bash
-python -c 'import pty; pty.spawn("/bin/bash")'
-```
-
-Durante la exploración encontré un archivo llamado:
+Entre los archivos encontrados apareció:
 
 ```
 recipe.txt
 ```
 
-que respondía a una de las preguntas del laboratorio.
-
----
-
-### 5. Enumeración interna
-
-Comencé revisando los usuarios existentes.
-
-```bash
-cat /etc/passwd
-```
-
-Entre ellos aparecían:
-
-- root
-- lennie
-- vagrant
-- ftpsecure
-
-Posteriormente encontré un directorio especialmente interesante:
+Su contenido respondía a una de las preguntas del laboratorio:
 
 ```
-/incidents
+love
 ```
 
-Dentro de él aparecía una captura de red:
+Posteriormente identifiqué un directorio especialmente interesante:
+
+```
+incidents
+```
+
+Dentro de él encontré una captura de tráfico:
 
 ```
 suspicious.pcapng
 ```
 
+---
+
+### 5. Análisis del tráfico
+
 Descargué el archivo y lo analicé utilizando **Wireshark**.
 
-Durante el análisis seguí uno de los flujos TCP, donde apareció el historial completo de una sesión interactiva.
+Siguiendo los flujos TCP apareció una sesión donde se observaban credenciales utilizadas previamente.
 
-En dicha conversación se observaba la contraseña utilizada por otro usuario durante un intento de autenticación.
-
-Gracias a esta información pude acceder al usuario:
+Las credenciales recuperadas fueron:
 
 ```
-lennie
+Usuario: lennie
+
+Contraseña: c4ntg3t3n0ughsp1c3
 ```
 
-y recuperar la primera flag:
+---
+
+### 6. Acceso mediante SSH
+
+Con las credenciales obtenidas inicié sesión mediante SSH.
+
+```bash
+ssh lennie@10.130.155.33
+```
+
+Una vez autenticado recuperé la primera flag:
 
 ```
 user.txt
@@ -182,29 +204,57 @@ user.txt
 
 ---
 
-### 6. Escalada de privilegios
+### 7. Escalada de privilegios
 
-La escalada de privilegios se basaba en un **script ejecutado automáticamente por root**.
+Durante la enumeración del directorio personal apareció:
 
-El objetivo consistía en modificar dicho script para ejecutar una **reverse shell** cuando la tarea programada volviera a ejecutarse.
+```
+~/scripts
+```
 
-Aunque durante la resolución original conseguí identificar correctamente el vector de escalada, no logré completar esta última fase por mis propios medios.
+Dentro encontré:
 
-Posteriormente consulté la solución oficial del laboratorio para comprender el funcionamiento completo y verificar la obtención de la flag de **root**.
+- `planner.sh`
+- `startup_list.txt`
+
+El análisis mostró que `planner.sh` ejecutaba el siguiente script:
+
+```
+/etc/print.sh
+```
+
+Comprobé que dicho archivo podía modificarse con el usuario actual.
+
+Aproveché esta configuración sustituyendo su contenido por:
+
+```bash
+echo "chmod +s /bin/bash" > /etc/print.sh
+```
+
+Tras esperar a que la tarea programada se ejecutara automáticamente como **root**, lancé:
+
+```bash
+/bin/bash -p
+```
+
+Obteniendo una shell con privilegios elevados.
+
+Finalmente recuperé la última flag:
+
+```
+/root/root.txt
+```
 
 ---
 
 ## 📚 Lecciones aprendidas
 
-- Este laboratorio permitió practicar técnicas muy diferentes a las utilizadas habitualmente en otros CTF, especialmente el análisis de tráfico de red como parte del proceso de post-explotación.
-- Aprovechar servidores FTP configurados con **Anonymous Login**.
+- Este laboratorio permitió practicar una cadena de explotación muy completa basada en la combinación de varios vectores de ataque.
+- Aprovechar servidores **FTP** con autenticación anónima.
 - Relacionar recursos compartidos entre FTP y servidores web.
-- Subir y ejecutar una **reverse shell** mediante un servidor FTP.
-- Estabilizar una shell interactiva utilizando Python.
-- Analizar capturas de tráfico con **Wireshark**.
-- Seguir flujos TCP para recuperar credenciales utilizadas durante sesiones anteriores.
-- Comprender cómo los **cron jobs** pueden convertirse en vectores de escalada de privilegios.
-
-### Reflexión
-
-Este laboratorio destacó especialmente por introducir el análisis forense de red dentro de una cadena de pentesting. Hasta ese momento la mayoría de laboratorios se resolvían mediante enumeración directa del sistema, mientras que en esta ocasión fue necesario interpretar una captura de tráfico para recuperar credenciales válidas. La escalada de privilegios también permitió comprender cómo un **cron job** mal configurado puede convertirse en un vector de ejecución de código con privilegios elevados. Aunque no conseguí completar esa última fase de forma autónoma, el laboratorio resultó muy útil para identificar un punto de mejora claro: profundizar en el funcionamiento de las tareas programadas y los mecanismos habituales de escalada relacionados con ellas.
+- Obtener ejecución remota de código mediante la subida de archivos.
+- Analizar capturas de red utilizando **Wireshark**.
+- Recuperar credenciales observando conversaciones en texto claro.
+- Reutilizar credenciales para acceder mediante SSH.
+- Identificar scripts ejecutados automáticamente por **root**.
+- Comprender el impacto de permisos de escritura sobre scripts utilizados por tareas programadas.
