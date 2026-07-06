@@ -8,14 +8,10 @@ El objetivo es mejorar continuamente la capacidad de documentar hallazgos de for
 
 ## Los informes incluirán
 
-- Resumen ejecutivo
-- Alcance
+- Objetivos del laboratorio
+- Tecnologías trabajadas
 - Metodología
-- Enumeración
-- Hallazgos
-- Evidencias
-- Evaluación del riesgo
-- Recomendaciones
-- Conclusiones
+- Explotación
+- Lecciones aprendidas
 
 Cada nuevo laboratorio importante será una oportunidad para mejorar la calidad de la documentación.
