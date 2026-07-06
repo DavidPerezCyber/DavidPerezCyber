@@ -1,18 +1,18 @@
 # Facultad (The Hacker Labs)
 
-## Sistema
+## 🖥️ Sistema
 
 Linux
 
 ---
 
-## Objetivo del laboratorio
+## 🎯 Objetivo del laboratorio
 
 Practicar técnicas de enumeración sobre un entorno WordPress, obtener acceso inicial mediante una vulnerabilidad de subida de archivos, realizar movimientos entre usuarios locales y completar una escalada de privilegios aprovechando permisos sudo y un script mal configurado.
 
 ---
 
-## Tecnologías trabajadas
+## 🛠️ Tecnologías trabajadas
 
 - HTTP
 - SSH
@@ -25,7 +25,7 @@ Practicar técnicas de enumeración sobre un entorno WordPress, obtener acceso i
 
 ---
 
-## Metodología
+## 🧠 Metodología
 
 - La enumeración inicial mostró únicamente los servicios SSH y HTTP, por lo que decidí centrar el análisis en la aplicación web para obtener credenciales o algún punto de entrada.
 
@@ -39,7 +39,7 @@ Practicar técnicas de enumeración sobre un entorno WordPress, obtener acceso i
 
 ---
 
-## Explotación
+## 🚀 Explotación
 
 ### 1. Reconocimiento
 
@@ -98,7 +98,7 @@ Tras analizar su funcionamiento se modificó el contenido del script para ejecut
 
 ---
 
-## Lecciones aprendidas
+## 📚 Lecciones aprendidas
 
 - Identificar un CMS durante la enumeración permite utilizar herramientas especializadas como WPScan para agilizar el proceso de reconocimiento.
 - La enumeración de usuarios y credenciales débiles en WordPress puede proporcionar acceso al panel de administración sin necesidad de explotar vulnerabilidades complejas.
