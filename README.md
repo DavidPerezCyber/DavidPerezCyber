@@ -57,15 +57,13 @@ I'm currently preparing for the OSCP certification while continuously improving 
 
 ---
 
-## 📂 Featured Projects
+## 📂 Projects
 
-Coming soon...
-
-- Web Pentesting
-- Active Directory
-- Professional Pentest Reports
-- Python Tools
-- Bash Scripts
+- Bash
+- Labs
+- Python
+- Reports
+- Tools
 
 ---
 
