@@ -2,7 +2,7 @@
 
 ## 🖥️ Sistema
 
-**Linux**
+Linux
 
 ---
 
