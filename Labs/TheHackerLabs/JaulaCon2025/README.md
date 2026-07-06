@@ -1,18 +1,18 @@
 # JaulaCon2025 (The Hacker Labs)
 
-## Sistema
+## 🖥️ Sistema
 
 Linux
 
 ---
 
-## Objetivo del laboratorio
+## 🎯 Objetivo del laboratorio
 
 Practicar técnicas de enumeración web sobre un CMS, explotar vulnerabilidades conocidas en Bludit para obtener acceso inicial, extraer credenciales desde la aplicación web y realizar una escalada de privilegios mediante permisos sudo mal configurados.
 
 ---
 
-## Tecnologías trabajadas
+## 🛠️ Tecnologías trabajadas
 
 - HTTP
 - SSH
@@ -24,7 +24,7 @@ Practicar técnicas de enumeración web sobre un CMS, explotar vulnerabilidades 
 
 ---
 
-## Metodología
+## 🧠 Metodología
 
 - La enumeración inicial mostró únicamente los servicios SSH y HTTP, por lo que decidí centrar el análisis en la aplicación web.
 
@@ -38,7 +38,7 @@ Practicar técnicas de enumeración web sobre un CMS, explotar vulnerabilidades 
 
 ---
 
-## Explotación
+## 🚀 Explotación
 
 ### 1. Reconocimiento
 
@@ -99,7 +99,7 @@ Consultando GTFOBins se identificó una técnica que permitía ejecutar una shel
 
 ---
 
-## Lecciones aprendidas
+## 📚 Lecciones aprendidas
 
 - Identificar la versión exacta de un CMS puede conducir directamente a vulnerabilidades conocidas.
 - Los paneles de administración suelen ser un objetivo prioritario durante la enumeración web.
