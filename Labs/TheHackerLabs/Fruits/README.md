@@ -1,16 +1,17 @@
 # Fruits (The Hacker Labs)
 
-## Sistema
+## ## 🖥️ Sistema
+
 Linux
 
 ---
 
-## Objetivo del laboratorio
+## 🎯 Objetivo del laboratorio
 Practicar técnicas de enumeración web, descubrir vulnerabilidades de tipo Local File Inclusion (LFI), obtener acceso inicial mediante fuerza bruta sobre SSH y realizar una escalada de privilegios aprovechando permisos sudo mal configurados.
 
 ---
 
-## Tecnologías trabajadas
+## 🛠️ Tecnologías trabajadas
 - HTTP
 - SSH
 - Local File Inclusion (LFI)
@@ -19,7 +20,7 @@ Practicar técnicas de enumeración web, descubrir vulnerabilidades de tipo Loca
 
 ---
 
-## Metodología
+## 🧠 Metodología
 - La enumeración inicial mostró únicamente los servicios SSH y HTTP, por lo que decidí centrar la atención en la aplicación web.
 - Tras analizar la página principal observé que la búsqueda utilizaba un parámetro en la URL. Como no encontré información relevante ni en el código fuente ni mediante un primer escaneo de directorios con Gobuster, asumí que el punto de entrada podía estar relacionado con dicho parámetro.
 - Mediante fuzzing conseguí identificar el nombre del parámetro y comprobé que era vulnerable a Local File Inclusion, lo que permitió acceder al archivo `/etc/passwd` para obtener usuarios válidos del sistema.
@@ -27,7 +28,7 @@ Practicar técnicas de enumeración web, descubrir vulnerabilidades de tipo Loca
 - Una vez conseguí acceso al sistema, inicié la enumeración local ejecutando `sudo -l`, ya que siempre es uno de los primeros pasos para detectar posibles vías de escalada de privilegios. El resultado mostró que el usuario podía ejecutar `find` con permisos elevados sin necesidad de contraseña, lo que permitió obtener una shell como root utilizando GTFOBins.
 
 ---
-## Explotación
+## 🚀 Explotación
 ### 1. Reconocimiento
 Se realizó un escaneo completo con Nmap para identificar los servicios expuestos.
 Se detectaron:
@@ -85,7 +86,7 @@ Consultando GTFOBins se identificó una técnica para obtener una shell privileg
 
 ---
 
-## Lecciones aprendidas
+## 📚 Lecciones aprendidas
 
 - No toda la enumeración web consiste únicamente en descubrir directorios; analizar los parámetros de una aplicación puede revelar el verdadero vector de entrada.
 - Una vulnerabilidad Local File Inclusion puede utilizarse para obtener usuarios válidos mediante la lectura del archivo `/etc/passwd`.
