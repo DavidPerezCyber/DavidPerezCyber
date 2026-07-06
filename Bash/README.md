@@ -7,10 +7,3 @@ La mayoría de herramientas estarán orientadas a reducir tareas repetitivas y m
 Cada script estará acompañado de documentación y ejemplos prácticos.
 
 ## Contenido
-
-- Enumeración
-- Reconocimiento
-- Gestión de archivos
-- Automatización
-- Scripts de apoyo para OSCP
-- Utilidades Linux
